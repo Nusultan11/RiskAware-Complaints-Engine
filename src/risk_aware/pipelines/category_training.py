@@ -15,6 +15,8 @@ class CategoryTrainer:
     labels: list[str]
 
     def train(self, train_df: pd.DataFrame, text_col: str, label_col: str):
+        texts = train_df[text_col].fillna("").tolist()
+        labels = train_df[label_col].tolist()
         model = build_text_stack(self.stack_name, self.labels, self.stack_cfg)
-        model.fit(train_df[text_col].fillna("").tolist(), train_df[label_col].tolist())
+        model.fit(texts, labels)
         return model

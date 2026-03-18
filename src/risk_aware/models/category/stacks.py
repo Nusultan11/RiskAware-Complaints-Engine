@@ -8,13 +8,14 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from risk_aware.models.base import TextClassifier
+from risk_aware.preprocessing.tfidf import tfidf_clean
 
 
 class TfidfLogRegTextStack(TextClassifier):
     def __init__(
         self,
         labels: list[str],
-        max_features: int = 50000,
+        max_features: int = 50_000,
         ngram_range: tuple[int, int] = (1, 2),
         c: float = 2.0,
         class_weight: str | None = "balanced",
@@ -22,7 +23,15 @@ class TfidfLogRegTextStack(TextClassifier):
         self._labels = labels
         self.pipeline = Pipeline(
             steps=[
-                ("tfidf", TfidfVectorizer(max_features=max_features, ngram_range=ngram_range)),
+                (
+                    "tfidf",
+                    TfidfVectorizer(
+                        max_features=max_features,
+                        ngram_range=ngram_range,
+                        lowercase=False,
+                        preprocessor=tfidf_clean,
+                    ),
+                ),
                 (
                     "clf",
                     LogisticRegression(
@@ -45,6 +54,9 @@ class TfidfLogRegTextStack(TextClassifier):
     def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
         return self.pipeline.predict_proba(list(texts))
 
+    def predict(self, texts: Sequence[str]) -> list[str]:
+        return self.pipeline.predict(list(texts)).tolist()
+
 
 class BiLSTMTextStack(TextClassifier):
     def __init__(self, labels: list[str]) -> None:
@@ -55,10 +67,10 @@ class BiLSTMTextStack(TextClassifier):
         return self._labels
 
     def fit(self, texts: Sequence[str], labels: Sequence[str | int]) -> None:
-        raise NotImplementedError("BiLSTM stack scaffold is declared but not implemented yet.")
+        raise NotImplementedError("BiLSTM stack is not implemented yet.")
 
     def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
-        raise NotImplementedError("BiLSTM stack scaffold is declared but not implemented yet.")
+        raise NotImplementedError("BiLSTM stack is not implemented yet.")
 
 
 class BertTextStack(TextClassifier):
@@ -70,7 +82,7 @@ class BertTextStack(TextClassifier):
         return self._labels
 
     def fit(self, texts: Sequence[str], labels: Sequence[str | int]) -> None:
-        raise NotImplementedError("Transformer stack scaffold is declared but not implemented yet.")
+        raise NotImplementedError("BERT stack is not implemented yet.")
 
     def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
-        raise NotImplementedError("Transformer stack scaffold is declared but not implemented yet.")
+        raise NotImplementedError("BERT stack is not implemented yet.")
