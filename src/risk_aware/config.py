@@ -20,8 +20,5 @@ def load_project_configs(config_dir: str | Path = "configs") -> dict[str, dict[s
     files = {
         "base": base_dir / "base.yaml",
         "category": base_dir / "category.yaml",
-        "legal": base_dir / "legal.yaml",
-        "priority": base_dir / "priority.yaml",
     }
     return {name: load_yaml(path) for name, path in files.items()}
-

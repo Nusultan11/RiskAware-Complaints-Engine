@@ -1,73 +1,49 @@
-# RiskAware Category-Only Architecture
+# RiskAware Architecture (Category-Only)
 
-## 1. Objective
+## Goal
 
-Build a reproducible NLP pipeline for CFPB complaint **category classification**.
+Predict complaint `category` from `consumer_complaint_narrative` using a reproducible, modular NLP pipeline.
 
-- Input: `consumer_complaint_narrative`
-- Target: `category = product|issue`
-- Output metric: `Macro-F1`
+## Canonical layout
 
-## 2. Current Scope
+```text
+RiskAware-Complaints-Engine/
+├── configs/
+│   ├── base.yaml
+│   └── category.yaml
+├── data/
+│   ├── raw/cfpb_complaints.csv
+│   └── processed/{train.csv,val.csv,test.csv,metadata.json}
+├── artifacts/category/
+│   ├── model.joblib
+│   ├── vectorizer.joblib
+│   ├── label_encoder.joblib
+│   └── training_metadata.json
+├── reports/metrics/category_metrics.json
+├── scripts/
+│   ├── prepare_data.py
+│   ├── train_category.py
+│   └── evaluate_category.py
+└── src/risk_aware/
+    ├── config.py
+    ├── data/prepare.py
+    ├── preprocessing/{base.py,tfidf.py,neural.py}
+    ├── features/encoders.py
+    ├── models/category/{baseline.py,stacks.py,registry.py}
+    ├── pipelines/category_training.py
+    ├── evaluation/category_metrics.py
+    ├── inference/category_predictor.py
+    └── utils/{io.py,seed.py,serialization.py}
+```
 
-Implemented and runnable:
-- EDA on CFPB complaints (`notebooks/EDA_CFPB.ipynb`)
-- Deterministic data preparation and split generation
-- Category model training (`TF-IDF + Logistic Regression`)
-- Category evaluation on test split
-- Artifact and metrics persistence
+## Pipeline
 
-## 3. Data Flow
+1. `scripts/prepare_data.py`
+2. `scripts/train_category.py`
+3. `scripts/evaluate_category.py`
 
-1. Raw data: `data/raw/cfpb_complaints.csv`
-2. Prepare stage (`src/risk_aware/data/prepare.py`):
-   - keep required columns
-   - drop invalid text rows
-   - build `category`
-   - create `complaint_id`
-   - split into `train/val/test`
-3. Train stage (`scripts/train.py`):
-   - train category model on `train.csv`
-   - save model artifact
-4. Evaluate stage (`scripts/evaluate.py`):
-   - evaluate on `test.csv`
-   - save category metric report
+## Design notes
 
-## 4. Components
-
-- Data preparation:
-  - `src/risk_aware/data/prepare.py`
-- Model stack:
-  - `src/risk_aware/models/stacks.py`
-  - `src/risk_aware/models/registry.py`
-- Training orchestration:
-  - `src/risk_aware/pipelines/training.py`
-  - `scripts/train.py`
-- Evaluation:
-  - `scripts/evaluate.py`
-
-## 5. Artifacts
-
-Processed data:
-- `data/processed/train.csv`
-- `data/processed/val.csv`
-- `data/processed/test.csv`
-- `data/processed/metadata.json`
-
-Model artifact:
-- `artifacts/models/category_model.joblib`
-
-Evaluation report:
-- `reports/metrics/category_metrics.json`
-
-## 6. Current Baseline
-
-- `category_macro_f1`: `0.301357`
-
-## 7. Next Steps
-
-- Tune TF-IDF baseline (`C`, ngram range, min/max df)
-- Implement and benchmark LSTM category stack
-- Implement and benchmark Transformer category stack
-- Compare all category stacks on the same split protocol
-
+- `TF-IDF + LogisticRegression` is the baseline stack.
+- `BiLSTM` and `Transformer` are scaffolded in `models/category/stacks.py`.
+- Macro-F1 is the primary metric for model comparison.

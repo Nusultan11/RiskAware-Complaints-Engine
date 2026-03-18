@@ -29,7 +29,6 @@ class TfidfLogRegTextStack(TextClassifier):
                         C=c,
                         class_weight=class_weight,
                         max_iter=1000,
-                        # Keep single-process fitting for compatibility in restricted Windows environments.
                         n_jobs=1,
                     ),
                 ),
@@ -56,10 +55,10 @@ class BiLSTMTextStack(TextClassifier):
         return self._labels
 
     def fit(self, texts: Sequence[str], labels: Sequence[str | int]) -> None:
-        raise NotImplementedError("BiLSTM training pipeline is defined by architecture but not implemented yet.")
+        raise NotImplementedError("BiLSTM stack scaffold is declared but not implemented yet.")
 
     def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
-        raise NotImplementedError("BiLSTM inference is defined by architecture but not implemented yet.")
+        raise NotImplementedError("BiLSTM stack scaffold is declared but not implemented yet.")
 
 
 class BertTextStack(TextClassifier):
@@ -71,7 +70,7 @@ class BertTextStack(TextClassifier):
         return self._labels
 
     def fit(self, texts: Sequence[str], labels: Sequence[str | int]) -> None:
-        raise NotImplementedError("BERT fine-tuning pipeline is defined by architecture but not implemented yet.")
+        raise NotImplementedError("Transformer stack scaffold is declared but not implemented yet.")
 
     def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
-        raise NotImplementedError("BERT inference is defined by architecture but not implemented yet.")
+        raise NotImplementedError("Transformer stack scaffold is declared but not implemented yet.")
