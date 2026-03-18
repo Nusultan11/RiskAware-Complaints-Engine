@@ -1,0 +1,25 @@
+project:
+  name: risk-aware-complaints-engine
+  seed: 42
+  output_dir: artifacts
+
+data:
+  source: data/raw/cfpb_complaints.csv
+  text_column: consumer_complaint_narrative
+  category_column: category
+  legal_column: legal_threat
+  split:
+    train_size: 0.7
+    val_size: 0.15
+    test_size: 0.15
+
+priority:
+  label_column: priority
+  policy:
+    mode: capacity_based
+    capacity_p1: 0.15
+    recall_target_p1: 0.90
+
+serving:
+  host: 0.0.0.0
+  port: 8080

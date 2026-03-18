@@ -1,0 +1,31 @@
+task: priority
+model: rule_based
+
+features:
+  category_proba: true
+  legal_proba: true
+  amount: true
+  repeat_count: true
+  client_type: true
+  account_age: true
+  channel: true
+
+models:
+  rule_based:
+    w_amount: 0.35
+    w_repeat: 0.25
+    w_legal: 0.40
+  lightgbm:
+    n_estimators: 300
+    learning_rate: 0.05
+    num_leaves: 63
+    random_state: 42
+  mlp:
+    hidden_layer_sizes: [256, 128]
+    alpha: 0.0001
+    max_iter: 400
+
+policy:
+  mode: capacity_based
+  capacity_p1: 0.15
+  recall_target_p1: 0.9

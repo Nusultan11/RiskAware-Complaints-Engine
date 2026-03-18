@@ -1,0 +1,17 @@
+# data / artifacts
+data/raw/
+data/processed/
+artifacts/
+reports/
+
+# notebooks outputs / exports
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+EDA_CFPB.html
+EDA_CFPB.pdf
+
+# env / python
+.env
+.venv/
+__pycache__/
+*.pyc
