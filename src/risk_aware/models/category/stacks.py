@@ -17,6 +17,8 @@ class TfidfLogRegTextStack(TextClassifier):
         labels: list[str],
         max_features: int = 50_000,
         ngram_range: tuple[int, int] = (1, 2),
+        min_df: int | float = 2,
+        max_df: int | float = 0.95,
         c: float = 2.0,
         class_weight: str | None = "balanced",
     ) -> None:
@@ -28,6 +30,8 @@ class TfidfLogRegTextStack(TextClassifier):
                     TfidfVectorizer(
                         max_features=max_features,
                         ngram_range=ngram_range,
+                        min_df=min_df,
+                        max_df=max_df,
                         lowercase=False,
                         preprocessor=tfidf_clean,
                     ),

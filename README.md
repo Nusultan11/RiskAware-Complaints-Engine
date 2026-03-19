@@ -31,7 +31,8 @@ RiskAware-Complaints-Engine/
 │       └── training_metadata.json
 ├── reports/
 │   └── metrics/
-│       └── category_metrics.json
+│       ├── category_metrics_val.json
+│       └── category_metrics_test.json
 ├── notebooks/
 │   └── EDA_CFPB.ipynb
 ├── docs/

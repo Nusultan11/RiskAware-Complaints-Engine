@@ -81,7 +81,7 @@ def run(config_dir: str = "configs") -> None:
     metrics_dir = Path("reports/metrics")
     metrics_dir.mkdir(parents=True, exist_ok=True)
 
-    with (metrics_dir / "category_metrics.json").open("w", encoding="utf-8") as f:
+    with (metrics_dir / "category_metrics_val.json").open("w", encoding="utf-8") as f:
         json.dump(metrics, f, indent=2, ensure_ascii=False)
 
     # --- save artifacts ---
@@ -110,7 +110,7 @@ def run(config_dir: str = "configs") -> None:
     typer.echo(f"Macro-F1: {metrics['macro_f1']:.4f}")
     typer.echo(f"Accuracy: {metrics['accuracy']:.4f}")
     typer.echo(f"Artifacts saved to: {output_dir}")
-    typer.echo(f"Metrics saved to: {metrics_dir}")
+    typer.echo(f"Validation metrics saved to: {metrics_dir / 'category_metrics_val.json'}")
 
 
 if __name__ == "__main__":
