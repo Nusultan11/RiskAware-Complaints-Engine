@@ -15,6 +15,7 @@ EDA_CFPB.pdf
 .venv/
 __pycache__/
 *.pyc
+*.egg-info/
 
 # local instructions
 AGENT.md

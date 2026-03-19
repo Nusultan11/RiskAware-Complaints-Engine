@@ -19,6 +19,10 @@ stacks:
     dropout: 0.2
     epochs: 6
     batch_size: 64
+    learning_rate: 0.001
+    weight_decay: 0.00001
+    grad_clip_norm: 1.0
+    early_stopping_patience: 2
   bert:
     model_name: distilbert-base-uncased
     max_length: 256
