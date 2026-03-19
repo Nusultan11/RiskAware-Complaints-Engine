@@ -23,7 +23,10 @@ class LSTMTrainConfig:
     vocab_size: int
     n_labels: int
     embedding_dim: int
-    hidden_dim: int
+    lstm_hidden_dim: int
+    bilstm_hidden_dim: int
+    num_layers_lstm: int
+    num_layers_bilstm: int
     dropout: float
     epochs: int
     batch_size: int
@@ -42,7 +45,10 @@ class BiLSTMClassifier(nn.Module):
         self,
         vocab_size: int,
         embedding_dim: int,
-        hidden_dim: int,
+        lstm_hidden_dim: int,
+        bilstm_hidden_dim: int,
+        num_layers_lstm: int,
+        num_layers_bilstm: int,
         n_labels: int,
         pad_idx: int,
         dropout: float,
@@ -53,14 +59,24 @@ class BiLSTMClassifier(nn.Module):
             embedding_dim=embedding_dim,
             padding_idx=pad_idx,
         )
-        self.encoder = nn.LSTM(
+        self.lstm = nn.LSTM(
             input_size=embedding_dim,
-            hidden_size=hidden_dim,
+            hidden_size=lstm_hidden_dim,
+            num_layers=num_layers_lstm,
+            batch_first=True,
+            bidirectional=False,
+            dropout=dropout if num_layers_lstm > 1 else 0.0,
+        )
+        self.bilstm = nn.LSTM(
+            input_size=lstm_hidden_dim,
+            hidden_size=bilstm_hidden_dim,
+            num_layers=num_layers_bilstm,
             batch_first=True,
             bidirectional=True,
+            dropout=dropout if num_layers_bilstm > 1 else 0.0,
         )
         self.dropout = nn.Dropout(dropout)
-        self.classifier = nn.Linear(hidden_dim * 2, n_labels)
+        self.classifier = nn.Linear(bilstm_hidden_dim * 2, n_labels)
 
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         embedded = self.embedding(input_ids)
@@ -71,7 +87,16 @@ class BiLSTMClassifier(nn.Module):
             batch_first=True,
             enforce_sorted=False,
         )
-        _, (h_n, _) = self.encoder(packed)
+        packed_lstm_out, _ = self.lstm(packed)
+        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(packed_lstm_out, batch_first=True)
+
+        repacked = nn.utils.rnn.pack_padded_sequence(
+            lstm_out,
+            lengths=lengths.cpu(),
+            batch_first=True,
+            enforce_sorted=False,
+        )
+        _, (h_n, _) = self.bilstm(repacked)
         # BiLSTM: take forward/backward final states and concatenate.
         features = torch.cat((h_n[-2], h_n[-1]), dim=1)
         features = self.dropout(features)
@@ -168,7 +193,10 @@ def _load_train_cfg(config_dir: str) -> tuple[LSTMTrainConfig, list[str], int]:
         vocab_size=int(meta["actual_vocab_size"]),
         n_labels=int(meta["n_labels"]),
         embedding_dim=int(bilstm_cfg.get("embedding_dim", 300)),
-        hidden_dim=int(bilstm_cfg.get("hidden_dim", 256)),
+        lstm_hidden_dim=int(bilstm_cfg.get("lstm_hidden_dim", bilstm_cfg.get("hidden_dim", 256))),
+        bilstm_hidden_dim=int(bilstm_cfg.get("bilstm_hidden_dim", bilstm_cfg.get("hidden_dim", 256))),
+        num_layers_lstm=int(bilstm_cfg.get("num_layers_lstm", 1)),
+        num_layers_bilstm=int(bilstm_cfg.get("num_layers_bilstm", 1)),
         dropout=float(bilstm_cfg.get("dropout", 0.2)),
         epochs=int(bilstm_cfg.get("epochs", 6)),
         batch_size=int(bilstm_cfg.get("batch_size", 64)),
@@ -201,7 +229,10 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
     model = BiLSTMClassifier(
         vocab_size=train_cfg.vocab_size,
         embedding_dim=train_cfg.embedding_dim,
-        hidden_dim=train_cfg.hidden_dim,
+        lstm_hidden_dim=train_cfg.lstm_hidden_dim,
+        bilstm_hidden_dim=train_cfg.bilstm_hidden_dim,
+        num_layers_lstm=train_cfg.num_layers_lstm,
+        num_layers_bilstm=train_cfg.num_layers_bilstm,
         n_labels=train_cfg.n_labels,
         pad_idx=pad_idx,
         dropout=train_cfg.dropout,
