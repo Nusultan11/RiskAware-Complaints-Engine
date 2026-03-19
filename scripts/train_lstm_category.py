@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -269,7 +269,7 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
             "state_dict": model.state_dict(),
             "labels": labels,
             "pad_idx": pad_idx,
-            "config": train_cfg.__dict__,
+            "config": asdict(train_cfg),
         },
         model_dir / "model.pt",
     )
@@ -280,7 +280,7 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
                 "best_epoch": best_epoch,
                 "best_val_macro_f1": best_val_f1,
                 "history": history,
-                "config": train_cfg.__dict__,
+                "config": asdict(train_cfg),
             },
             f,
             indent=2,
