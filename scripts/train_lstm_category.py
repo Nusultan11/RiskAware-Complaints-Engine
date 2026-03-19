@@ -31,6 +31,8 @@ class LSTMTrainConfig:
     weight_decay: float
     grad_clip_norm: float
     early_stopping_patience: int
+    use_class_weights: bool
+    class_weight_max: float
     seed: int
     device: str
 
@@ -99,6 +101,21 @@ def _build_loader(path: Path, batch_size: int, shuffle: bool) -> DataLoader[tupl
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=0)
 
 
+def _build_class_weights(
+    loader: DataLoader[tuple[torch.Tensor, ...]],
+    n_labels: int,
+    class_weight_max: float,
+    device: torch.device,
+) -> torch.Tensor:
+    labels = loader.dataset.tensors[2].to(torch.int64)
+    counts = torch.bincount(labels, minlength=n_labels).to(torch.float32)
+    counts = counts.clamp_min(1.0)
+    weights = counts.sum() / (counts * float(n_labels))
+    weights = weights / weights.mean().clamp_min(1e-8)
+    weights = torch.clamp(weights, max=class_weight_max)
+    return weights.to(device)
+
+
 def _predict(
     model: nn.Module,
     loader: DataLoader[tuple[torch.Tensor, ...]],
@@ -155,10 +172,12 @@ def _load_train_cfg(config_dir: str) -> tuple[LSTMTrainConfig, list[str], int]:
         dropout=float(bilstm_cfg.get("dropout", 0.2)),
         epochs=int(bilstm_cfg.get("epochs", 6)),
         batch_size=int(bilstm_cfg.get("batch_size", 64)),
-        learning_rate=float(bilstm_cfg.get("learning_rate", 1e-3)),
+        learning_rate=float(bilstm_cfg.get("learning_rate", 3e-4)),
         weight_decay=float(bilstm_cfg.get("weight_decay", 1e-5)),
         grad_clip_norm=float(bilstm_cfg.get("grad_clip_norm", 1.0)),
         early_stopping_patience=int(bilstm_cfg.get("early_stopping_patience", 2)),
+        use_class_weights=bool(bilstm_cfg.get("use_class_weights", True)),
+        class_weight_max=float(bilstm_cfg.get("class_weight_max", 10.0)),
         seed=int(base_cfg.get("project", {}).get("seed", 42)),
         device=device,
     )
@@ -188,7 +207,17 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
         dropout=train_cfg.dropout,
     ).to(device)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion: nn.CrossEntropyLoss
+    if train_cfg.use_class_weights:
+        class_weights = _build_class_weights(
+            loader=train_loader,
+            n_labels=train_cfg.n_labels,
+            class_weight_max=train_cfg.class_weight_max,
+            device=device,
+        )
+        criterion = nn.CrossEntropyLoss(weight=class_weights)
+    else:
+        criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=train_cfg.learning_rate,
@@ -200,6 +229,10 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
     best_epoch = -1
     stale_epochs = 0
     history: list[dict[str, float | int]] = []
+    typer.echo(
+        f"device={device.type} use_class_weights={train_cfg.use_class_weights} "
+        f"learning_rate={train_cfg.learning_rate}"
+    )
 
     for epoch in range(1, train_cfg.epochs + 1):
         model.train()
