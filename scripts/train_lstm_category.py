@@ -35,6 +35,9 @@ class LSTMTrainConfig:
     weight_decay: float
     grad_clip_norm: float
     early_stopping_patience: int
+    scheduler_factor: float
+    scheduler_patience: int
+    scheduler_min_lr: float
     use_class_weights: bool
     class_weight_max: float
     seed: int
@@ -218,6 +221,9 @@ def _load_train_cfg(config_dir: str) -> tuple[LSTMTrainConfig, list[str], int]:
         weight_decay=float(bilstm_cfg.get("weight_decay", 1e-5)),
         grad_clip_norm=float(bilstm_cfg.get("grad_clip_norm", 1.0)),
         early_stopping_patience=int(bilstm_cfg.get("early_stopping_patience", 2)),
+        scheduler_factor=float(bilstm_cfg.get("scheduler_factor", 0.5)),
+        scheduler_patience=int(bilstm_cfg.get("scheduler_patience", 1)),
+        scheduler_min_lr=float(bilstm_cfg.get("scheduler_min_lr", 1e-5)),
         use_class_weights=bool(bilstm_cfg.get("use_class_weights", True)),
         class_weight_max=float(bilstm_cfg.get("class_weight_max", 10.0)),
         seed=int(base_cfg.get("project", {}).get("seed", 42)),
@@ -269,6 +275,13 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
         lr=train_cfg.learning_rate,
         weight_decay=train_cfg.weight_decay,
     )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer=optimizer,
+        mode="max",
+        factor=train_cfg.scheduler_factor,
+        patience=train_cfg.scheduler_patience,
+        min_lr=train_cfg.scheduler_min_lr,
+    )
 
     best_val_f1 = float("-inf")
     best_state: dict[str, torch.Tensor] | None = None
@@ -305,6 +318,7 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
         val_true, val_pred = _predict(model, val_loader, device)
         val_metrics = _compute_metrics(val_true, val_pred, labels=labels)
         val_f1 = float(val_metrics["macro_f1"])
+        scheduler.step(val_f1)
 
         history.append(
             {
@@ -312,11 +326,13 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
                 "train_loss": avg_train_loss,
                 "val_macro_f1": val_f1,
                 "val_accuracy": float(val_metrics["accuracy"]),
+                "lr": float(optimizer.param_groups[0]["lr"]),
             }
         )
         typer.echo(
             f"epoch={epoch} train_loss={avg_train_loss:.4f} "
-            f"val_macro_f1={val_f1:.4f} val_accuracy={val_metrics['accuracy']:.4f}"
+            f"val_macro_f1={val_f1:.4f} val_accuracy={val_metrics['accuracy']:.4f} "
+            f"lr={optimizer.param_groups[0]['lr']:.6f}"
         )
 
         if val_f1 > best_val_f1:
