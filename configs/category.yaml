@@ -11,23 +11,24 @@ stacks:
     c: 3.641226167642757
     class_weight: balanced
   bilstm:
+    architecture: bilstm_only
     max_vocab_size: 50000
     min_token_freq: 2
     max_length: 256
-    embedding_dim: 192
-    lstm_hidden_dim: 192
-    bilstm_hidden_dim: 192
+    embedding_dim: 128
+    lstm_hidden_dim: 128
+    bilstm_hidden_dim: 128
     num_layers_lstm: 1
     num_layers_bilstm: 1
-    dropout: 0.3
-    epochs: 8
-    batch_size: 192
-    learning_rate: 0.0003
+    dropout: 0.2
+    epochs: 10
+    batch_size: 256
+    learning_rate: 0.001
     weight_decay: 1.0e-05
     grad_clip_norm: 1.0
     early_stopping_patience: 3
-    use_class_weights: true
-    class_weight_max: 10.0
+    use_class_weights: false
+    class_weight_max: 5.0
   bert:
     model_name: distilbert-base-uncased
     max_length: 256

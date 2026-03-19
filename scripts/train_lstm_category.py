@@ -19,6 +19,7 @@ app = typer.Typer(add_completion=False, help="Train BiLSTM category model on pre
 
 @dataclass(slots=True)
 class LSTMTrainConfig:
+    architecture: str
     max_length: int
     vocab_size: int
     n_labels: int
@@ -43,6 +44,7 @@ class LSTMTrainConfig:
 class BiLSTMClassifier(nn.Module):
     def __init__(
         self,
+        architecture: str,
         vocab_size: int,
         embedding_dim: int,
         lstm_hidden_dim: int,
@@ -54,21 +56,30 @@ class BiLSTMClassifier(nn.Module):
         dropout: float,
     ) -> None:
         super().__init__()
+        if architecture not in {"bilstm_only", "lstm_bilstm"}:
+            raise ValueError(f"Unsupported architecture: {architecture}")
+        self.architecture = architecture
         self.embedding = nn.Embedding(
             num_embeddings=vocab_size,
             embedding_dim=embedding_dim,
             padding_idx=pad_idx,
         )
-        self.lstm = nn.LSTM(
-            input_size=embedding_dim,
-            hidden_size=lstm_hidden_dim,
-            num_layers=num_layers_lstm,
-            batch_first=True,
-            bidirectional=False,
-            dropout=dropout if num_layers_lstm > 1 else 0.0,
-        )
+        if self.architecture == "lstm_bilstm":
+            self.lstm = nn.LSTM(
+                input_size=embedding_dim,
+                hidden_size=lstm_hidden_dim,
+                num_layers=num_layers_lstm,
+                batch_first=True,
+                bidirectional=False,
+                dropout=dropout if num_layers_lstm > 1 else 0.0,
+            )
+            bilstm_input_dim = lstm_hidden_dim
+        else:
+            self.lstm = None
+            bilstm_input_dim = embedding_dim
+
         self.bilstm = nn.LSTM(
-            input_size=lstm_hidden_dim,
+            input_size=bilstm_input_dim,
             hidden_size=bilstm_hidden_dim,
             num_layers=num_layers_bilstm,
             batch_first=True,
@@ -81,22 +92,24 @@ class BiLSTMClassifier(nn.Module):
     def forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         embedded = self.embedding(input_ids)
         lengths = attention_mask.sum(dim=1).clamp(min=1).to(torch.int64)
-        packed = nn.utils.rnn.pack_padded_sequence(
+        packed_input = nn.utils.rnn.pack_padded_sequence(
             embedded,
             lengths=lengths.cpu(),
             batch_first=True,
             enforce_sorted=False,
         )
-        packed_lstm_out, _ = self.lstm(packed)
-        lstm_out, _ = nn.utils.rnn.pad_packed_sequence(packed_lstm_out, batch_first=True)
 
-        repacked = nn.utils.rnn.pack_padded_sequence(
-            lstm_out,
-            lengths=lengths.cpu(),
-            batch_first=True,
-            enforce_sorted=False,
-        )
-        _, (h_n, _) = self.bilstm(repacked)
+        if self.architecture == "lstm_bilstm":
+            packed_lstm_out, _ = self.lstm(packed_input)
+            lstm_out, _ = nn.utils.rnn.pad_packed_sequence(packed_lstm_out, batch_first=True)
+            packed_input = nn.utils.rnn.pack_padded_sequence(
+                lstm_out,
+                lengths=lengths.cpu(),
+                batch_first=True,
+                enforce_sorted=False,
+            )
+
+        _, (h_n, _) = self.bilstm(packed_input)
         # BiLSTM: take forward/backward final states and concatenate.
         features = torch.cat((h_n[-2], h_n[-1]), dim=1)
         features = self.dropout(features)
@@ -189,6 +202,7 @@ def _load_train_cfg(config_dir: str) -> tuple[LSTMTrainConfig, list[str], int]:
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     train_cfg = LSTMTrainConfig(
+        architecture=str(bilstm_cfg.get("architecture", "bilstm_only")),
         max_length=int(meta["max_length"]),
         vocab_size=int(meta["actual_vocab_size"]),
         n_labels=int(meta["n_labels"]),
@@ -227,6 +241,7 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
     test_loader = _build_loader(Path("artifacts/lstm_preprocessing/test.npz"), train_cfg.batch_size, False)
 
     model = BiLSTMClassifier(
+        architecture=train_cfg.architecture,
         vocab_size=train_cfg.vocab_size,
         embedding_dim=train_cfg.embedding_dim,
         lstm_hidden_dim=train_cfg.lstm_hidden_dim,
@@ -261,8 +276,8 @@ def run(config_dir: str = "configs", epochs: int | None = None) -> None:
     stale_epochs = 0
     history: list[dict[str, float | int]] = []
     typer.echo(
-        f"device={device.type} use_class_weights={train_cfg.use_class_weights} "
-        f"learning_rate={train_cfg.learning_rate}"
+        f"device={device.type} architecture={train_cfg.architecture} "
+        f"use_class_weights={train_cfg.use_class_weights} learning_rate={train_cfg.learning_rate}"
     )
 
     for epoch in range(1, train_cfg.epochs + 1):
