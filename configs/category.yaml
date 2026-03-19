@@ -21,17 +21,14 @@ stacks:
     num_layers_lstm: 1
     num_layers_bilstm: 1
     dropout: 0.2
-    epochs: 10
+    epochs: 20
     batch_size: 256
     learning_rate: 0.001
     weight_decay: 1.0e-05
     grad_clip_norm: 1.0
     early_stopping_patience: 3
-    scheduler_factor: 0.5
-    scheduler_patience: 1
-    scheduler_min_lr: 1.0e-05
-    use_class_weights: false
-    class_weight_max: 5.0
+    use_class_weights: true
+    class_weight_max: 3.0
   bert:
     model_name: distilbert-base-uncased
     max_length: 256
