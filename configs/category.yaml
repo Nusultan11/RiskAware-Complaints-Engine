@@ -14,17 +14,15 @@ stacks:
     max_vocab_size: 50000
     min_token_freq: 2
     max_length: 256
-    embedding_dim: 300
-    hidden_dim: 256
+    embedding_dim: 128
+    hidden_dim: 128
     dropout: 0.2
     epochs: 6
-    batch_size: 64
-    learning_rate: 0.0003
-    weight_decay: 0.00001
+    batch_size: 256
+    learning_rate: 0.001
+    weight_decay: 1.0e-05
     grad_clip_norm: 1.0
     early_stopping_patience: 2
-    use_class_weights: true
-    class_weight_max: 10.0
   bert:
     model_name: distilbert-base-uncased
     max_length: 256
