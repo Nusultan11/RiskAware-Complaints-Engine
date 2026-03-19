@@ -1,15 +1,19 @@
 task: category
 stack: tfidf_lr
-
 stacks:
   tfidf_lr:
     max_features: 70000
-    ngram_range: [1, 2]
-    min_df: 2
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
     max_df: 0.9
-    c: 8.0
+    c: 3.641226167642757
     class_weight: balanced
   bilstm:
+    max_vocab_size: 50000
+    min_token_freq: 2
+    max_length: 256
     embedding_dim: 300
     hidden_dim: 256
     dropout: 0.2
@@ -18,170 +22,205 @@ stacks:
   bert:
     model_name: distilbert-base-uncased
     max_length: 256
-    learning_rate: 0.00002
+    learning_rate: 2.0e-05
     batch_size: 32
     epochs: 3
-
 experiments:
-  - name: tfidf_lr_grid_b_m1_d085
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 1
-      max_df: 0.85
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m1_d090
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 1
-      max_df: 0.90
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m1_d095
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 1
-      max_df: 0.95
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m2_d085
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 2
-      max_df: 0.85
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m2_d090
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 2
-      max_df: 0.90
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m2_d095
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 2
-      max_df: 0.95
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m3_d085
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 3
-      max_df: 0.85
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m3_d090
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 3
-      max_df: 0.90
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_b_m3_d095
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 3
-      max_df: 0.95
-      c: 8.0
-      class_weight: balanced
-  - name: tfidf_lr_grid_n_m1_d085
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 1
-      max_df: 0.85
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m1_d090
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 1
-      max_df: 0.90
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m1_d095
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 1
-      max_df: 0.95
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m2_d085
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 2
-      max_df: 0.85
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m2_d090
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 2
-      max_df: 0.90
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m2_d095
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 2
-      max_df: 0.95
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m3_d085
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 3
-      max_df: 0.85
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m3_d090
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 3
-      max_df: 0.90
-      c: 8.0
-      class_weight: null
-  - name: tfidf_lr_grid_n_m3_d095
-    stack: tfidf_lr
-    params:
-      max_features: 70000
-      ngram_range: [1, 2]
-      min_df: 3
-      max_df: 0.95
-      c: 8.0
-      class_weight: null
+- name: tfidf_lr_grid_b_m1_d085
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 1
+    max_df: 0.85
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m1_d090
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 1
+    max_df: 0.9
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m1_d095
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 1
+    max_df: 0.95
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m2_d085
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 2
+    max_df: 0.85
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m2_d090
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 2
+    max_df: 0.9
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m2_d095
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 2
+    max_df: 0.95
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m3_d085
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
+    max_df: 0.85
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m3_d090
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
+    max_df: 0.9
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_b_m3_d095
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
+    max_df: 0.95
+    c: 8.0
+    class_weight: balanced
+- name: tfidf_lr_grid_n_m1_d085
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 1
+    max_df: 0.85
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m1_d090
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 1
+    max_df: 0.9
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m1_d095
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 1
+    max_df: 0.95
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m2_d085
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 2
+    max_df: 0.85
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m2_d090
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 2
+    max_df: 0.9
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m2_d095
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 2
+    max_df: 0.95
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m3_d085
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
+    max_df: 0.85
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m3_d090
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
+    max_df: 0.9
+    c: 8.0
+    class_weight: null
+- name: tfidf_lr_grid_n_m3_d095
+  stack: tfidf_lr
+  params:
+    max_features: 70000
+    ngram_range:
+    - 1
+    - 2
+    min_df: 3
+    max_df: 0.95
+    c: 8.0
+    class_weight: null
