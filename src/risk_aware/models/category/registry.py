@@ -25,6 +25,7 @@ def build_text_stack(
         return TfidfLogRegTextStack(
             labels=labels,
             max_features=int(stack_cfg.get("max_features", 50_000)),
+            analyzer=str(stack_cfg.get("analyzer", "word")),
             ngram_range=(int(ngram[0]), int(ngram[1])),
             min_df=stack_cfg.get("min_df", 2),
             max_df=stack_cfg.get("max_df", 0.95),

@@ -16,6 +16,7 @@ class TfidfLogRegTextStack(TextClassifier):
         self,
         labels: list[str],
         max_features: int = 50_000,
+        analyzer: str = "word",
         ngram_range: tuple[int, int] = (1, 2),
         min_df: int | float = 2,
         max_df: int | float = 0.95,
@@ -23,17 +24,22 @@ class TfidfLogRegTextStack(TextClassifier):
         class_weight: str | None = "balanced",
     ) -> None:
         self._labels = labels
+        if analyzer not in {"word", "char_wb"}:
+            raise ValueError("analyzer must be one of: {'word', 'char_wb'}")
+        preprocessor = tfidf_clean if analyzer == "word" else None
+        lowercase = False if analyzer == "word" else True
         self.pipeline = Pipeline(
             steps=[
                 (
                     "tfidf",
                     TfidfVectorizer(
+                        analyzer=analyzer,
                         max_features=max_features,
                         ngram_range=ngram_range,
                         min_df=min_df,
                         max_df=max_df,
-                        lowercase=False,
-                        preprocessor=tfidf_clean,
+                        lowercase=lowercase,
+                        preprocessor=preprocessor,
                         sublinear_tf=True,
                     ),
                 ),
