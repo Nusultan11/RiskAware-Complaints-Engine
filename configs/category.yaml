@@ -2,12 +2,11 @@ task: category
 stack: tfidf_lr
 stacks:
   tfidf_lr:
-    analyzer: word
     max_features: 70000
     ngram_range:
     - 1
     - 2
-    min_df: 5
+    min_df: 3
     max_df: 0.9
     c: 3.641226167642757
     class_weight: balanced
