@@ -34,6 +34,7 @@ class TfidfLogRegTextStack(TextClassifier):
                         max_df=max_df,
                         lowercase=False,
                         preprocessor=tfidf_clean,
+                        sublinear_tf=True,
                     ),
                 ),
                 (

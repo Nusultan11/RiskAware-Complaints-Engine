@@ -5,12 +5,13 @@ import re
 from pathlib import Path
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedGroupKFold
 
 SEED = 42
 REQUIRED_COLUMNS = ["consumer_complaint_narrative", "product", "issue"]
-FINAL_COLUMNS = ["complaint_id", "consumer_complaint_narrative", "product", "issue", "category"]
+FINAL_COLUMNS = ["complaint_id", "consumer_complaint_narrative", "text_key", "product", "issue", "category"]
 MIN_TEXT_LEN = 20
+MIN_CLASS_COUNT = 5
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 RAW_DATA_PATH = PROJECT_ROOT / "data" / "raw" / "cfpb_complaints.csv"
@@ -41,78 +42,106 @@ def build_category_slice(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, int]
     rows_after_len = len(frame)
     frame["category"] = frame["product"].astype(str) + "|" + frame["issue"].astype(str)
     frame["text_key"] = frame["consumer_complaint_narrative"].map(_text_key)
-    frame = frame.drop_duplicates(subset=["text_key"], keep="first").copy()
-    rows_after_dedup = len(frame)
+    n_classes_before_min_count = int(frame["category"].nunique())
+
+    category_counts = frame["category"].value_counts()
+    valid_categories = category_counts[category_counts >= MIN_CLASS_COUNT].index
+    frame = frame[frame["category"].isin(valid_categories)].copy()
+
+    n_classes_after_min_count = int(frame["category"].nunique())
+    min_class_size_after_filter = int(frame["category"].value_counts().min()) if not frame.empty else 0
+    rows_after_class_filter = len(frame)
+
+    # Remove ambiguous groups where one normalized text maps to multiple categories.
+    rows_before_conflict_filter = len(frame)
+    category_per_text_key = frame.groupby("text_key")["category"].nunique()
+    conflicting_text_keys = category_per_text_key[category_per_text_key > 1].index
+    n_conflicting_text_keys_before = int(len(conflicting_text_keys))
+    if n_conflicting_text_keys_before > 0:
+        frame = frame[~frame["text_key"].isin(conflicting_text_keys)].copy()
+    rows_after_conflict_filter = len(frame)
+    dropped_conflict_rows = rows_before_conflict_filter - rows_after_conflict_filter
+
+    # Re-apply class threshold after conflict cleanup.
+    category_counts_post_conflict = frame["category"].value_counts()
+    valid_categories_post_conflict = category_counts_post_conflict[
+        category_counts_post_conflict >= MIN_CLASS_COUNT
+    ].index
+    frame = frame[frame["category"].isin(valid_categories_post_conflict)].copy()
+    rows_after_class_refilter = len(frame)
+    n_classes_after_refilter = int(frame["category"].nunique())
+    min_class_size_after_refilter = int(frame["category"].value_counts().min()) if not frame.empty else 0
+
+    remaining_conflicts = frame.groupby("text_key")["category"].nunique()
+    n_conflicting_text_keys_after = int((remaining_conflicts > 1).sum())
+
+    rows_after_text_key = len(frame)
     frame = frame.reset_index(drop=True)
     frame["complaint_id"] = "cfpb_" + frame.index.astype(str)
     stats = {
         "rows_raw": rows_raw,
         "rows_after_na": rows_after_na,
         "rows_after_min_len": rows_after_len,
-        "rows_after_text_dedup": rows_after_dedup,
-        "dropped_by_text_dedup": rows_after_len - rows_after_dedup,
+        "rows_after_class_filter": rows_after_class_filter,
+        "rows_before_conflict_filter": rows_before_conflict_filter,
+        "rows_after_conflict_filter": rows_after_conflict_filter,
+        "dropped_conflict_rows": dropped_conflict_rows,
+        "rows_after_class_refilter": rows_after_class_refilter,
+        "rows_after_text_key": rows_after_text_key,
+        "dropped_by_text_dedup": 0,
+        "n_classes_before_min_count": n_classes_before_min_count,
+        "n_classes_after_min_count": n_classes_after_min_count,
+        "min_class_size_after_filter": min_class_size_after_filter,
+        "n_classes_after_refilter": n_classes_after_refilter,
+        "min_class_size_after_refilter": min_class_size_after_refilter,
+        "n_conflicting_text_keys_before": n_conflicting_text_keys_before,
+        "n_conflicting_text_keys_after": n_conflicting_text_keys_after,
+        "min_class_count_threshold": MIN_CLASS_COUNT,
     }
     return frame[FINAL_COLUMNS].copy(), stats
 
 
 def _assert_no_text_overlap(train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd.DataFrame) -> None:
-    train_text = set(train_df["consumer_complaint_narrative"].map(_text_key))
-    val_text = set(val_df["consumer_complaint_narrative"].map(_text_key))
-    test_text = set(test_df["consumer_complaint_narrative"].map(_text_key))
+    train_keys = set(train_df["text_key"].astype(str))
+    val_keys = set(val_df["text_key"].astype(str))
+    test_keys = set(test_df["text_key"].astype(str))
 
-    overlap_tv = len(train_text.intersection(val_text))
-    overlap_tt = len(train_text.intersection(test_text))
-    overlap_vt = len(val_text.intersection(test_text))
+    overlap_tv = len(train_keys.intersection(val_keys))
+    overlap_tt = len(train_keys.intersection(test_keys))
+    overlap_vt = len(val_keys.intersection(test_keys))
 
     if overlap_tv or overlap_tt or overlap_vt:
         raise ValueError(
-            "Text leakage detected between splits: "
+            "Group leakage detected between splits by text_key: "
             f"train-val={overlap_tv}, train-test={overlap_tt}, val-test={overlap_vt}"
         )
 
 
 def split_dataset(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    counts = df["category"].value_counts()
+    required_cols = {"category", "text_key"}
+    if not required_cols.issubset(df.columns):
+        raise ValueError(f"split_dataset requires columns: {sorted(required_cols)}")
 
-    # Classes with fewer than 3 samples cannot be safely stratified in a 70/15/15 split.
-    rare_classes = counts[counts < 3].index
-    rare_df = df[df["category"].isin(rare_classes)].copy()
-    common_df = df[~df["category"].isin(rare_classes)].copy()
+    outer = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=SEED)
+    y = df["category"].astype(str)
+    groups = df["text_key"].astype(str)
+    train_val_idx, test_idx = next(outer.split(df, y, groups))
 
-    if common_df.empty:
-        raise ValueError("No classes eligible for stratified split after rare-class filtering.")
+    train_val_df = df.iloc[train_val_idx].copy().reset_index(drop=True)
+    test_df = df.iloc[test_idx].copy().reset_index(drop=True)
 
-    train_common, temp_common = train_test_split(
-        common_df,
-        train_size=0.7,
-        random_state=SEED,
-        stratify=common_df["category"],
-    )
+    inner = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=SEED)
+    y_inner = train_val_df["category"].astype(str)
+    groups_inner = train_val_df["text_key"].astype(str)
+    train_idx, val_idx = next(inner.split(train_val_df, y_inner, groups_inner))
 
-    # For second split, only keep categories that still have at least 2 rows in temp.
-    temp_counts = temp_common["category"].value_counts()
-    temp_rare_classes = temp_counts[temp_counts < 2].index
-    temp_rare_df = temp_common[temp_common["category"].isin(temp_rare_classes)].copy()
-    temp_strat_df = temp_common[~temp_common["category"].isin(temp_rare_classes)].copy()
+    train_df = train_val_df.iloc[train_idx].copy().reset_index(drop=True)
+    val_df = train_val_df.iloc[val_idx].copy().reset_index(drop=True)
 
-    if temp_strat_df.empty:
-        raise ValueError("Validation/test stratified split has no eligible rows.")
-
-    val_df, test_df = train_test_split(
-        temp_strat_df,
-        train_size=0.5,
-        random_state=SEED,
-        stratify=temp_strat_df["category"],
-    )
-
-    # Keep unsplittable tails in train/val deterministically (never in test).
-    train_df = pd.concat([train_common, rare_df], ignore_index=True)
-    val_df = pd.concat([val_df, temp_rare_df], ignore_index=True)
-
-    # Deterministic shuffling for stable row order.
     train_df = train_df.sample(frac=1.0, random_state=SEED).reset_index(drop=True)
     val_df = val_df.sample(frac=1.0, random_state=SEED).reset_index(drop=True)
     test_df = test_df.sample(frac=1.0, random_state=SEED).reset_index(drop=True)
+
     _assert_no_text_overlap(train_df, val_df, test_df)
     return train_df, val_df, test_df
 

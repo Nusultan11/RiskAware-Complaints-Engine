@@ -9,12 +9,11 @@ from risk_aware.preprocessing.base import TextPreprocessor
 
 
 def tfidf_clean(text: str) -> str:
-    if text is None:
-        return ""
-    cleaned = str(text).strip().lower()
-    cleaned = re.sub(r"[^a-z\s]", " ", cleaned)
+    cleaned = str(text or "").strip().lower()
     # Based on EDA: "xxxx" is dominant anonymization token and acts as TF-IDF noise.
     cleaned = re.sub(r"\b(x{2,})\b", " ", cleaned)
+    cleaned = re.sub(r"\d+", " num ", cleaned)
+    cleaned = re.sub(r"[^a-z\s]", " ", cleaned)
     cleaned = " ".join(cleaned.split())
     return cleaned
 
