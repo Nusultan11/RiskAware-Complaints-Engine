@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from risk_aware.models.category.bilstm import BiLSTMClassifier
 from risk_aware.preprocessing.neural import simple_tokenize
@@ -39,6 +40,9 @@ class CategoryPredictor:
         self._bilstm_vocab: dict[str, int] | None = None
         self._bilstm_max_length: int | None = None
         self._bilstm_pad_idx: int | None = None
+        self._distilbert_model: AutoModelForSequenceClassification | None = None
+        self._distilbert_tokenizer: AutoTokenizer | None = None
+        self._distilbert_labels: list[str] | None = None
 
     def _load_tfidf(self) -> Any:
         if self._tfidf_model is not None:
@@ -103,6 +107,34 @@ class CategoryPredictor:
 
         return model, labels, self._bilstm_vocab, self._bilstm_max_length, pad_idx
 
+    def _load_distilbert(self) -> tuple[AutoModelForSequenceClassification, AutoTokenizer, list[str]]:
+        if (
+            self._distilbert_model is not None
+            and self._distilbert_tokenizer is not None
+            and self._distilbert_labels is not None
+        ):
+            return self._distilbert_model, self._distilbert_tokenizer, self._distilbert_labels
+
+        model_dir = self.artifacts_dir / "category_transformer" / "distilbert_baseline"
+        id_to_label_path = model_dir / "id_to_label.json"
+        if not model_dir.exists():
+            raise FileNotFoundError(f"DistilBERT model dir not found: {model_dir}")
+        if not id_to_label_path.exists():
+            raise FileNotFoundError(f"DistilBERT labels mapping not found: {id_to_label_path}")
+
+        id_to_label = json.loads(id_to_label_path.read_text(encoding="utf-8"))
+        labels = [value for _, value in sorted(((int(k), str(v)) for k, v in id_to_label.items()), key=lambda x: x[0])]
+
+        model = AutoModelForSequenceClassification.from_pretrained(model_dir)
+        tokenizer = AutoTokenizer.from_pretrained(model_dir)
+        model = model.to(self.device)
+        model.eval()
+
+        self._distilbert_model = model
+        self._distilbert_tokenizer = tokenizer
+        self._distilbert_labels = labels
+        return model, tokenizer, labels
+
     def _encode_for_bilstm(
         self,
         texts: list[str],
@@ -145,7 +177,18 @@ class CategoryPredictor:
             return np.array([labels[int(i)] for i in pred_idx], dtype=object)
 
         if model_type == "distilbert":
-            raise NotImplementedError("distilbert inference is not implemented yet.")
+            model, tokenizer, labels = self._load_distilbert()
+            batch = tokenizer(
+                [str(t) for t in texts],
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+            batch = {k: v.to(self.device) for k, v in batch.items()}
+            with torch.no_grad():
+                logits = model(**batch).logits
+                pred_idx = torch.argmax(logits, dim=1).cpu().numpy()
+            return np.array([labels[int(i)] for i in pred_idx], dtype=object)
 
         raise ValueError("model_type must be one of: {'tfidf_lr', 'bilstm', 'distilbert'}")
 
@@ -166,8 +209,17 @@ class CategoryPredictor:
             return proba
 
         if model_type == "distilbert":
-            raise NotImplementedError("distilbert inference is not implemented yet.")
+            model, tokenizer, _ = self._load_distilbert()
+            batch = tokenizer(
+                [str(t) for t in texts],
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+            batch = {k: v.to(self.device) for k, v in batch.items()}
+            with torch.no_grad():
+                logits = model(**batch).logits
+                proba = torch.softmax(logits, dim=1).cpu().numpy()
+            return proba
 
         raise ValueError("model_type must be one of: {'tfidf_lr', 'bilstm', 'distilbert'}")
-        pred_idx = np.argmax(proba, axis=1)
-        return np.array([self.model.labels[i] for i in pred_idx], dtype=object)
