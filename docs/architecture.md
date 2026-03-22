@@ -2,41 +2,67 @@
 
 ## Goal
 
-Predict complaint `category` from `consumer_complaint_narrative` with a reproducible ML pipeline.
+Predict complaint `category` from `consumer_complaint_narrative` with a reproducible and leakage-safe ML pipeline.
 
-## Pipeline
+## Layered Architecture
 
-1. `scripts/prepare_data.py`
-2. `scripts/prepare_lstm_data.py` (sequence preprocessing for LSTM)
-3. `scripts/train_category.py`
-4. `scripts/train_lstm_category.py`
-5. `scripts/evaluate_category.py`
-
-## Data flow
+### Data layer
 
 - Raw source: `data/raw/cfpb_complaints.csv`
-- Processed splits: `data/processed/train.csv`, `val.csv`, `test.csv`
-- TF-IDF artifacts: `artifacts/category/`
-- LSTM preprocessing artifacts: `artifacts/lstm_preprocessing/`
-  - `train.npz`, `val.npz`, `test.npz`
-  - `vocab.json`
-  - `metadata.json`
-- LSTM model artifacts: `artifacts/category_lstm/`
-  - `model.pt`
-  - `training_metadata.json`
+- Canonical preparation: [`src/risk_aware/data/prepare.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/data/prepare.py)
+- Rules:
+  - `MIN_CLASS_COUNT = 5`
+  - remove conflicting `text_key`
+  - group-aware split by `text_key`
+  - zero overlap between `train/val/test` by `text_key`
 
-## EDA-aligned preprocessing decisions
+### Preprocessing layer
 
-- Minimum narrative length filter is applied in dataset preparation.
-- Text split leakage is explicitly checked (`train/val/test` overlap guard).
-- For TF-IDF: anonymization token (`xxxx`) is treated as noise.
-- For LSTM: anonymization token is preserved as `<anon>` and numbers as `<num>`.
-- Sequence length is capped by `bilstm.max_length` from `configs/category.yaml`.
+- TF-IDF preprocessing: [`src/risk_aware/preprocessing/tfidf.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/tfidf.py)
+- Neural preprocessing: [`src/risk_aware/preprocessing/neural.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/neural.py)
 
-## Metrics
+### Model layer
 
-- Primary metric: Macro-F1.
-- Validation and test metrics are saved separately to avoid accidental overwrite.
-- LSTM validation/test metrics are saved to
-  - `reports/metrics/category_lstm_metrics_val.json`
-  - `reports/metrics/category_lstm_metrics_test.json`
+- Sparse baseline: TF-IDF + Logistic Regression
+- DL baseline: BiLSTM ([`src/risk_aware/models/category/bilstm.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/models/category/bilstm.py))
+- Transformer comparison: DistilBERT
+
+### Pipeline layer
+
+- TF-IDF training: [`src/risk_aware/pipelines/category_training.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/pipelines/category_training.py)
+- LSTM training: [`src/risk_aware/pipelines/category_lstm_training.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/pipelines/category_lstm_training.py)
+- Transformer training: [`src/risk_aware/pipelines/category_transformer_training.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/pipelines/category_transformer_training.py)
+
+### Inference layer
+
+- Unified interface: [`src/risk_aware/inference/category_predictor.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/inference/category_predictor.py)
+- API:
+  - `predict(texts, model_type="tfidf_lr")`
+  - `predict(texts, model_type="bilstm")`
+  - `predict(texts, model_type="distilbert")` (reserved)
+
+### Scripts layer (entrypoints)
+
+Scripts are launchers only:
+
+- `scripts/prepare_data.py`
+- `scripts/prepare_lstm_data.py`
+- `scripts/train_category.py`
+- `scripts/train_lstm_category.py`
+- `scripts/train_transformer_category.py`
+- `scripts/evaluate_category.py`
+- `scripts/generate_final_comparison.py`
+
+## Artifacts
+
+- TF-IDF: `artifacts/category/`
+- LSTM preprocessing: `artifacts/lstm_preprocessing/`
+- LSTM model: `artifacts/category_lstm/`
+- Transformer: `artifacts/category_transformer/`
+- Final comparison: `reports/final/model_comparison.csv`, `reports/final/model_comparison.json`
+
+## Metrics Policy
+
+- Primary metric: **Macro-F1**
+- Secondary: Accuracy, Weighted-F1
+- Metrics are written into `reports/metrics/*` and aggregated into `reports/final/*`

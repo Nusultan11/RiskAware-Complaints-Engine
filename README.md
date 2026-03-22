@@ -1,57 +1,63 @@
 # RiskAware Complaints Engine
 
-Category-only NLP pipeline for CFPB complaint classification.
+Production-style NLP pipeline for CFPB complaint **category** classification with three model families:
 
-## Structure
+- TF-IDF + Logistic Regression (main baseline)
+- BiLSTM (DL baseline)
+- DistilBERT (transformer comparison model)
 
-```text
-RiskAware-Complaints-Engine/
-|- configs/
-|  |- base.yaml
-|  |- category.yaml
-|- data/
-|  |- raw/cfpb_complaints.csv
-|  |- processed/{train.csv,val.csv,test.csv,metadata.json}
-|- artifacts/
-|  |- category/{model.joblib,vectorizer.joblib,label_encoder.joblib,training_metadata.json}
-|  |- lstm_preprocessing/{train.npz,val.npz,test.npz,vocab.json,metadata.json}
-|  |- category_lstm/{model.pt,training_metadata.json}
-|- reports/
-|  |- metrics/
-|- notebooks/
-|  |- EDA_CFPB.ipynb
-|- scripts/
-|  |- prepare_data.py
-|  |- prepare_lstm_data.py
-|  |- train_category.py
-|  |- train_lstm_category.py
-|  |- evaluate_category.py
-|  |- tune_category.py
-|  |- tune_category_optuna.py
-|  |- error_analysis_category.py
-|- src/risk_aware/
-|  |- data/prepare.py
-|  |- preprocessing/{tfidf.py,neural.py}
-|  |- models/category/{stacks.py,registry.py}
-|  |- pipelines/category_training.py
-|  |- evaluation/category_metrics.py
-|  |- inference/category_predictor.py
-|- tests/
-```
+## Final Data Pipeline
 
-## Run
+Implemented in [`src/risk_aware/data/prepare.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/data/prepare.py):
+
+- `MIN_CLASS_COUNT = 5`
+- conflicting `text_key` rows removed
+- group-aware split by `text_key` (`train/val/test`) to prevent leakage
+
+Processed outputs:
+
+- `data/processed/train.csv`
+- `data/processed/val.csv`
+- `data/processed/test.csv`
+- `data/processed/metadata.json`
+
+## Preprocessing
+
+- TF-IDF: [`src/risk_aware/preprocessing/tfidf.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/tfidf.py)
+  - anonymization `xxxx` treated as noise
+  - digits normalized to `num`
+  - vectorizer uses `sublinear_tf=True`
+- Neural: [`src/risk_aware/preprocessing/neural.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/neural.py)
+  - `xxxx -> <anon>`
+  - digits -> `<num>`
+  - contractions preserved (apostrophe retained)
+
+## Training Entry Points
 
 ```powershell
 $env:PYTHONPATH = "src"
 python scripts/prepare_data.py
-python scripts/prepare_lstm_data.py
 python scripts/train_category.py
-python scripts/train_lstm_category.py
 python scripts/evaluate_category.py
+python scripts/prepare_lstm_data.py
+python scripts/train_lstm_category.py
+python scripts/train_transformer_category.py
+python scripts/generate_final_comparison.py
 ```
 
-## Notes
+`scripts/*` are thin launchers; core training logic lives in `src/risk_aware/pipelines/*`.
 
-- Baseline model: TF-IDF + Logistic Regression.
-- LSTM and Transformer stacks are scaffolded; LSTM data preprocessing is now ready.
-- Primary metric: Macro-F1.
+## Final Model Comparison (test)
+
+See:
+
+- `reports/final/model_comparison.csv`
+- `reports/final/model_comparison.json`
+
+Primary selection metric: **Macro-F1**.
+
+Current role assignment:
+
+- **Main model**: TF-IDF + Logistic Regression
+- **DL baseline**: BiLSTM
+- **Transformer comparison**: DistilBERT (len256/len384 experiments)
