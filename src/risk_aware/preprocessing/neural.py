@@ -20,7 +20,7 @@ def neural_clean(text: str) -> str:
     cleaned = str(text or "").strip().lower()
     cleaned = re.sub(r"\bx{2,}\b", " <anon> ", cleaned)
     cleaned = re.sub(r"\d+", " <num> ", cleaned)
-    cleaned = re.sub(r"[^a-z<>\s]", " ", cleaned)
+    cleaned = re.sub(r"[^a-z<>'\s]", " ", cleaned)
     return " ".join(cleaned.split())
 
 
