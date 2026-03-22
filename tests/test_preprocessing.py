@@ -1,7 +1,7 @@
 import numpy as np
 
 from risk_aware.preprocessing.neural import NeuralTextPreprocessor, neural_clean
-from risk_aware.preprocessing.tfidf import TfidfTextPreprocessor
+from risk_aware.preprocessing.tfidf import TfidfTextPreprocessor, tfidf_clean
 
 
 def test_tfidf_preprocessor_transforms_texts() -> None:
@@ -30,3 +30,17 @@ def test_neural_preprocessor_builds_token_ids_and_mask() -> None:
     assert mask.shape == (2, 6)
     assert token_ids.dtype == np.int32
     assert mask.dtype == np.uint8
+
+
+def test_tfidf_clean_drops_anon_and_normalizes_numbers() -> None:
+    text = "I paid $120 on 01/15/2023 but XXXX still reported 30 days late."
+    cleaned = tfidf_clean(text)
+    assert "xxxx" not in cleaned
+    assert "num" in cleaned
+
+
+def test_neural_clean_keeps_contractions() -> None:
+    text = "I don't know why we can't verify this."
+    cleaned = neural_clean(text)
+    assert "don't" in cleaned
+    assert "can't" in cleaned

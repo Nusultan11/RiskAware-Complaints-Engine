@@ -67,33 +67,3 @@ class TfidfLogRegTextStack(TextClassifier):
 
     def predict(self, texts: Sequence[str]) -> list[str]:
         return self.pipeline.predict(list(texts)).tolist()
-
-
-class BiLSTMTextStack(TextClassifier):
-    def __init__(self, labels: list[str]) -> None:
-        self._labels = labels
-
-    @property
-    def labels(self) -> list[str]:
-        return self._labels
-
-    def fit(self, texts: Sequence[str], labels: Sequence[str | int]) -> None:
-        raise NotImplementedError("BiLSTM stack is not implemented yet.")
-
-    def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
-        raise NotImplementedError("BiLSTM stack is not implemented yet.")
-
-
-class BertTextStack(TextClassifier):
-    def __init__(self, labels: list[str]) -> None:
-        self._labels = labels
-
-    @property
-    def labels(self) -> list[str]:
-        return self._labels
-
-    def fit(self, texts: Sequence[str], labels: Sequence[str | int]) -> None:
-        raise NotImplementedError("BERT stack is not implemented yet.")
-
-    def predict_proba(self, texts: Sequence[str]) -> np.ndarray:
-        raise NotImplementedError("BERT stack is not implemented yet.")

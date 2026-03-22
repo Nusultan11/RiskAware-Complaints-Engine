@@ -8,7 +8,7 @@ Production-style NLP pipeline for CFPB complaint **category** classification wit
 
 ## Final Data Pipeline
 
-Implemented in [`src/risk_aware/data/prepare.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/data/prepare.py):
+Implemented in [`src/risk_aware/data/prepare.py`](src/risk_aware/data/prepare.py):
 
 - `MIN_CLASS_COUNT = 5`
 - conflicting `text_key` rows removed
@@ -23,11 +23,11 @@ Processed outputs:
 
 ## Preprocessing
 
-- TF-IDF: [`src/risk_aware/preprocessing/tfidf.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/tfidf.py)
+- TF-IDF: [`src/risk_aware/preprocessing/tfidf.py`](src/risk_aware/preprocessing/tfidf.py)
   - anonymization `xxxx` treated as noise
   - digits normalized to `num`
   - vectorizer uses `sublinear_tf=True`
-- Neural: [`src/risk_aware/preprocessing/neural.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/neural.py)
+- Neural: [`src/risk_aware/preprocessing/neural.py`](src/risk_aware/preprocessing/neural.py)
   - `xxxx -> <anon>`
   - digits -> `<num>`
   - contractions preserved (apostrophe retained)

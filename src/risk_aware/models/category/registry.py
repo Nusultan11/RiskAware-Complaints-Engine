@@ -3,11 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from risk_aware.models.base import TextClassifier
-from risk_aware.models.category.stacks import (
-    BertTextStack,
-    BiLSTMTextStack,
-    TfidfLogRegTextStack,
-)
+from risk_aware.models.category.stacks import TfidfLogRegTextStack
 
 
 def build_text_stack(
@@ -34,9 +30,16 @@ def build_text_stack(
         )
 
     if stack_name == "bilstm":
-        return BiLSTMTextStack(labels=labels)
+        raise ValueError(
+            "bilstm training is not exposed through build_text_stack. "
+            "Use scripts/train_lstm_category.py (pipeline: src/risk_aware/pipelines/category_lstm_training.py)."
+        )
 
     if stack_name == "bert":
-        return BertTextStack(labels=labels)
+        raise ValueError(
+            "bert/distilbert training is not exposed through build_text_stack. "
+            "Use scripts/train_transformer_category.py "
+            "(pipeline: src/risk_aware/pipelines/category_transformer_training.py)."
+        )
 
     raise ValueError(f"Unsupported NLP stack: {stack_name}")

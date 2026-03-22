@@ -168,7 +168,7 @@ def save_metadata(
         "seed": SEED,
         "task": "category_only",
         "min_text_len": MIN_TEXT_LEN,
-        "split_strategy": "stratified_with_tail_handling",
+        "split_strategy": "stratified_group_kfold_by_text_key",
         "train_rows": len(train_df),
         "val_rows": len(val_df),
         "test_rows": len(test_df),

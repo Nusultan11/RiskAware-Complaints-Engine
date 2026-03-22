@@ -9,7 +9,7 @@ Predict complaint `category` from `consumer_complaint_narrative` with a reproduc
 ### Data layer
 
 - Raw source: `data/raw/cfpb_complaints.csv`
-- Canonical preparation: [`src/risk_aware/data/prepare.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/data/prepare.py)
+- Canonical preparation: [`src/risk_aware/data/prepare.py`](../src/risk_aware/data/prepare.py)
 - Rules:
   - `MIN_CLASS_COUNT = 5`
   - remove conflicting `text_key`
@@ -18,24 +18,24 @@ Predict complaint `category` from `consumer_complaint_narrative` with a reproduc
 
 ### Preprocessing layer
 
-- TF-IDF preprocessing: [`src/risk_aware/preprocessing/tfidf.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/tfidf.py)
-- Neural preprocessing: [`src/risk_aware/preprocessing/neural.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/preprocessing/neural.py)
+- TF-IDF preprocessing: [`src/risk_aware/preprocessing/tfidf.py`](../src/risk_aware/preprocessing/tfidf.py)
+- Neural preprocessing: [`src/risk_aware/preprocessing/neural.py`](../src/risk_aware/preprocessing/neural.py)
 
 ### Model layer
 
 - Sparse baseline: TF-IDF + Logistic Regression
-- DL baseline: BiLSTM ([`src/risk_aware/models/category/bilstm.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/models/category/bilstm.py))
+- DL baseline: BiLSTM ([`src/risk_aware/models/category/bilstm.py`](../src/risk_aware/models/category/bilstm.py))
 - Transformer comparison: DistilBERT
 
 ### Pipeline layer
 
-- TF-IDF training: [`src/risk_aware/pipelines/category_training.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/pipelines/category_training.py)
-- LSTM training: [`src/risk_aware/pipelines/category_lstm_training.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/pipelines/category_lstm_training.py)
-- Transformer training: [`src/risk_aware/pipelines/category_transformer_training.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/pipelines/category_transformer_training.py)
+- TF-IDF training: [`src/risk_aware/pipelines/category_training.py`](../src/risk_aware/pipelines/category_training.py)
+- LSTM training: [`src/risk_aware/pipelines/category_lstm_training.py`](../src/risk_aware/pipelines/category_lstm_training.py)
+- Transformer training: [`src/risk_aware/pipelines/category_transformer_training.py`](../src/risk_aware/pipelines/category_transformer_training.py)
 
 ### Inference layer
 
-- Unified interface: [`src/risk_aware/inference/category_predictor.py`](C:/Users/nurs/OneDrive/Рабочий стол/RiskAware Complaints Engine/src/risk_aware/inference/category_predictor.py)
+- Unified interface: [`src/risk_aware/inference/category_predictor.py`](../src/risk_aware/inference/category_predictor.py)
 - API:
   - `predict(texts, model_type="tfidf_lr")`
   - `predict(texts, model_type="bilstm")`
