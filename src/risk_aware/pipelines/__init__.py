@@ -1,4 +1,5 @@
 """Training and inference pipelines."""
 from risk_aware.pipelines.category_training import CategoryTrainer
+from risk_aware.pipelines.category_lstm_training import run_category_lstm_training
 
-__all__ = ["CategoryTrainer"]
+__all__ = ["CategoryTrainer", "run_category_lstm_training"]
